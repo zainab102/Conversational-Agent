@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conversational Agent</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="light-mode">
+    <div id="app">
+        <aside class="sidebar">
+            <button id="new-chat-btn" class="sidebar-btn">+ New Chat</button>
+            <div class="sidebar-section">
+                <label>
+                    <input type="checkbox" id="memory-toggle" checked />
+                    Memory (save last 10 messages)
+                </label>
+            </div>
+            <div class="sidebar-section">
+                <label>
+                    <input type="checkbox" id="dark-mode-toggle" />
+                    Dark Mode
+                </label>
+            </div>
+            <button id="clear-chat-btn" class="sidebar-btn">Clear Chat</button>
+            <button id="export-chat-btn" class="sidebar-btn">Export Conversation</button>
+            <div class="sidebar-section">
+                <h3>Search Chat</h3>
+                <input type="text" id="search-input" placeholder="Search messages..." />
+                <div id="search-results" class="search-results"></div>
+            </div>
+            <div class="sidebar-section">
+                <h3>Assistant Persona</h3>
+                <label for="persona-name-input">Name:</label>
+                <input type="text" id="persona-name-input" placeholder="Assistant Name" />
+                <label for="persona-style-select">Style:</label>
+                <select id="persona-style-select">
+                    <option value="default">Default</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="formal">Formal</option>
+                    <option value="casual">Casual</option>
+                    <option value="funny">Funny</option>
+                </select>
+            </div>
+            <div class="sidebar-section">
+                <h3>Settings</h3>
+                <button id="settings-btn" class="sidebar-btn">Open Settings</button>
+            </div>
+            <div class="sidebar-section">
+                <h3>Conversation Stats</h3>
+                <ul id="conv-stats" class="conversation-stats">
+                    <li>Total messages: <span id="stat-total">0</span></li>
+                    <li>User messages: <span id="stat-user">0</span></li>
+                    <li>Assistant messages: <span id="stat-assistant">0</span></li>
+                    <li>Average message length: <span id="stat-length">0</span> chars</li>
+                </ul>
+            </div>
+            <div class="sidebar-section voice-control">
+                <h3>Voice Control</h3>
+                <button id="voice-btn" class="sidebar-btn">🎙️ Start Recording</button>
+            </div>
+            <div class="sidebar-section">
+                <h3>Chat Theme</h3>
+                <select id="theme-select">
+                    <option value="default">Default</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="sunset">Sunset</option>
+                    <option value="forest">Forest</option>
+                    <option value="lavender">Lavender</option>
+                </select>
+            </div>
+        </aside>
+        <main class="chat-container">
+            <header class="chat-header">Conversational Agent</header>
+            <ul id="messages" class="messages"></ul>
+            <div id="typing-indicator" class="typing-indicator" hidden>AI is typing<span
+                    class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+            <div id="quick-replies" class="quick-replies"></div>
+            <form id="input-form" class="input-form" autocomplete="off">
+                <button type="button" id="emoji-btn" class="emoji-btn" aria-label="Open emoji picker">😀</button>
+                <div id="emoji-picker" class="emoji-picker hidden">
+                    <div id="emoji-grid" class="emoji-grid"></div>
+                </div>
+                <textarea id="input" class="input" rows="1" placeholder="Type your message..."></textarea>
+                <button type="submit" class="send-btn" aria-label="Send message">Send</button>
+            </form>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
