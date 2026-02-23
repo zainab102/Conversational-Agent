@@ -140,6 +140,20 @@ body {
   margin-right: 8px;
 }
 
+.api-status {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ddd;
+}
+
+.api-status.online {
+  background: rgba(39, 174, 96, 0.3);
+  color: #c9ffd8;
+}
+
 /* Chat container */
 
 .chat-container {
@@ -208,6 +222,36 @@ body {
   color: var(--text-color);
   margin-right: auto;
   border-bottom-left-radius: 4px;
+}
+
+.message-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.message:hover .message-actions {
+  opacity: 1;
+}
+
+.message-action-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: inherit;
+  font-size: 0.72rem;
+  border-radius: 12px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.message-action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.message-action-btn.danger {
+  border-color: rgba(255, 87, 87, 0.8);
 }
 
 .assistant-default {
@@ -582,5 +626,9 @@ body {
   #theme-select {
     font-size: 0.9rem;
     padding: 6px;
+  }
+
+  .message-actions {
+    opacity: 1;
   }
 }

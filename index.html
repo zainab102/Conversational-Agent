@@ -26,6 +26,15 @@
             </div>
             <button id="clear-chat-btn" class="sidebar-btn">Clear Chat</button>
             <button id="export-chat-btn" class="sidebar-btn">Export Conversation</button>
+            <button id="import-chat-btn" class="sidebar-btn">Import Conversation</button>
+            <input type="file" id="import-chat-file" accept="application/json" hidden />
+            <div class="sidebar-section">
+                <label>
+                    <input type="checkbox" id="api-mode-toggle" />
+                    Use API mode
+                </label>
+                <div id="api-status" class="api-status">Using local assistant engine</div>
+            </div>
             <div class="sidebar-section">
                 <h3>Search Chat</h3>
                 <input type="text" id="search-input" placeholder="Search messages..." />

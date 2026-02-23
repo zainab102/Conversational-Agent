@@ -10,6 +10,10 @@
   const darkModeToggle = document.getElementById('dark-mode-toggle');
   const searchInput = document.getElementById('search-input');
   const searchResults = document.getElementById('search-results');
+  const apiModeToggle = document.getElementById('api-mode-toggle');
+  const apiStatusEl = document.getElementById('api-status');
+  const importChatBtn = document.getElementById('import-chat-btn');
+  const importChatFile = document.getElementById('import-chat-file');
 
   // State
   let messages = [];
@@ -17,14 +21,18 @@
   let maxMemoryMessages = 10;
   let typingDelayMs = 1200;
   let autoScrollEnabled = true;
+  let apiModeEnabled = false;
   let typingTimeout = null;
   let emojiPickerVisible = false;
   let settingsModalVisible = false;
+  const chatSessionId = localStorage.getItem('chat_session_id') || `session-${Date.now()}`;
+  localStorage.setItem('chat_session_id', chatSessionId);
 
   const SETTINGS_KEYS = {
     memoryLimit: 'chat_max_memory_messages',
     typingDelay: 'chat_typing_delay_ms',
-    autoScroll: 'chat_auto_scroll'
+    autoScroll: 'chat_auto_scroll',
+    apiMode: 'chat_api_mode'
   };
 
   // Handle persona customization
@@ -39,6 +47,16 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function setApiStatus() {
+    if (apiModeEnabled) {
+      apiStatusEl.textContent = 'Using server API mode';
+      apiStatusEl.classList.add('online');
+    } else {
+      apiStatusEl.textContent = 'Using local assistant engine';
+      apiStatusEl.classList.remove('online');
+    }
   }
 
   // Load messages and settings from localStorage
@@ -64,11 +82,17 @@
       maxMemoryMessages = clamp(parseInt(localStorage.getItem(SETTINGS_KEYS.memoryLimit), 10) || 10, 1, 100);
       typingDelayMs = clamp(parseInt(localStorage.getItem(SETTINGS_KEYS.typingDelay), 10) || 1200, 100, 5000);
       autoScrollEnabled = localStorage.getItem(SETTINGS_KEYS.autoScroll) !== 'false';
+      apiModeEnabled = localStorage.getItem(SETTINGS_KEYS.apiMode) === 'true';
+      apiModeToggle.checked = apiModeEnabled;
+      setApiStatus();
     } catch {
       messages = [];
       maxMemoryMessages = 10;
       typingDelayMs = 1200;
       autoScrollEnabled = true;
+      apiModeEnabled = false;
+      apiModeToggle.checked = false;
+      setApiStatus();
     }
   }
 
@@ -86,6 +110,7 @@
     localStorage.setItem(SETTINGS_KEYS.memoryLimit, maxMemoryMessages);
     localStorage.setItem(SETTINGS_KEYS.typingDelay, typingDelayMs);
     localStorage.setItem(SETTINGS_KEYS.autoScroll, autoScrollEnabled);
+    localStorage.setItem(SETTINGS_KEYS.apiMode, apiModeEnabled);
   }
 
   // Utility to get random element from array
@@ -157,6 +182,50 @@
     saveToStorage();
   }
 
+  function copyMessage(index) {
+    const content = messages[index]?.content || '';
+    if (!content) return;
+
+    if (!navigator.clipboard) {
+      showNotification('Clipboard not available');
+      return;
+    }
+
+    navigator.clipboard.writeText(content)
+      .then(() => showNotification('Message copied'))
+      .catch(() => showNotification('Copy failed'));
+  }
+
+  function editMessage(index) {
+    const current = messages[index];
+    if (!current) return;
+
+    const updated = window.prompt('Edit message:', current.content);
+    if (updated === null) return;
+
+    const trimmed = updated.trim();
+    if (!trimmed) {
+      showNotification('Message cannot be empty');
+      return;
+    }
+
+    messages[index].content = trimmed;
+    messages[index].edited = true;
+    messages[index].timestamp = Date.now();
+    renderMessages();
+    updateConversationStats();
+    renderSearchResults(searchInput.value.trim());
+    saveToStorage();
+  }
+
+  function deleteMessage(index) {
+    messages.splice(index, 1);
+    renderMessages();
+    updateConversationStats();
+    renderSearchResults(searchInput.value.trim());
+    saveToStorage();
+  }
+
   function renderSearchResults(query) {
     searchResults.innerHTML = '';
     if (!query) return;
@@ -215,8 +284,36 @@
 
       const meta = document.createElement('div');
       meta.classList.add('message-timestamp');
-      meta.textContent = formatTimestamp(msg.timestamp);
+      meta.textContent = `${formatTimestamp(msg.timestamp)}${msg.edited ? ' · edited' : ''}`;
       li.appendChild(meta);
+
+      const actions = document.createElement('div');
+      actions.classList.add('message-actions');
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.classList.add('message-action-btn');
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', () => copyMessage(index));
+      actions.appendChild(copyBtn);
+
+      if (msg.role === 'user') {
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.classList.add('message-action-btn');
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => editMessage(index));
+        actions.appendChild(editBtn);
+      }
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.classList.add('message-action-btn', 'danger');
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.addEventListener('click', () => deleteMessage(index));
+      actions.appendChild(deleteBtn);
+
+      li.appendChild(actions);
 
       const reactions = document.createElement('div');
       reactions.classList.add('message-reactions');
@@ -286,6 +383,34 @@
     renderMessages();
     updateConversationStats();
     renderSearchResults(searchInput.value.trim());
+  }
+
+  async function getAssistantReply(input) {
+    if (!apiModeEnabled) {
+      return getReply(input, messages);
+    }
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: input,
+          sessionId: chatSessionId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response || 'No response from API.';
+    } catch (error) {
+      console.error(error);
+      showNotification('API unavailable. Falling back to local mode reply.');
+      return getReply(input, messages);
+    }
   }
 
   // Pattern-based conversation engine with intent detection and context handling
@@ -433,7 +558,7 @@
   }
 
   // Handle form submission
-  formEl.addEventListener('submit', (e) => {
+  formEl.addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = inputEl.value.trim();
     if (!input) return;
@@ -442,11 +567,10 @@
     inputEl.value = '';
     setTyping(true);
 
-    setTimeout(() => {
-      const reply = getReply(input, messages);
-      addMessage('assistant', reply);
-      setTyping(false);
-    }, typingDelayMs);
+    await new Promise((resolve) => setTimeout(resolve, typingDelayMs));
+    const reply = await getAssistantReply(input);
+    addMessage('assistant', reply);
+    setTyping(false);
   });
 
   // Handle enter key press to send message (without Shift+Enter)
@@ -481,19 +605,74 @@
       return;
     }
 
-    let text = '';
-    messages.forEach((msg) => {
-      const role = msg.role === 'user' ? 'User' : 'Assistant';
-      text += `${role}: ${msg.content}\n`;
-    });
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      persona: {
+        name: personaNameInput.value.trim() || 'Assistant',
+        style: personaStyleSelect.value
+      },
+      messages
+    };
 
-    const blob = new Blob([text], { type: 'text/plain' });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'conversation.txt';
+    a.download = 'conversation.json';
     a.click();
     URL.revokeObjectURL(url);
+  });
+
+  importChatBtn.addEventListener('click', () => {
+    importChatFile.click();
+  });
+
+  importChatFile.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed.messages)) {
+        throw new Error('Invalid format');
+      }
+
+      messages = parsed.messages
+        .filter((msg) => msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string')
+        .map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp || Date.now(),
+          reactions: msg.reactions || {},
+          edited: Boolean(msg.edited)
+        }));
+
+      if (parsed.persona?.name) {
+        personaNameInput.value = parsed.persona.name;
+      }
+      if (parsed.persona?.style) {
+        personaStyleSelect.value = parsed.persona.style;
+      }
+
+      savePersona();
+      renderMessages();
+      updateConversationStats();
+      renderSearchResults(searchInput.value.trim());
+      saveToStorage();
+      showNotification('Conversation imported');
+    } catch {
+      showNotification('Invalid conversation file');
+    } finally {
+      importChatFile.value = '';
+    }
+  });
+
+  apiModeToggle.addEventListener('change', () => {
+    apiModeEnabled = apiModeToggle.checked;
+    setApiStatus();
+    saveToStorage();
+    showNotification(apiModeEnabled ? 'API mode enabled' : 'API mode disabled');
   });
 
   // Persona input events to save and re-render messages
