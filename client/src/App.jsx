@@ -4,6 +4,7 @@ import axios from "axios";
 const USER_AVATAR_URL = "https://cdn-icons-png.flaticon.com/512/147/147144.png";
 const ASSISTANT_AVATAR_URL =
   "https://cdn-icons-png.flaticon.com/512/4712/4712027.png";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export default function App() {
   const [messages, setMessages] = useState([
@@ -36,7 +37,7 @@ export default function App() {
     setLoading(true);
     setTyping(true);
     try {
-      const response = await axios.post("http://localhost:3001/api/chat", {
+      const response = await axios.post(`${API_BASE_URL}/api/chat`, {
         message: input,
         sessionId,
         messages,
