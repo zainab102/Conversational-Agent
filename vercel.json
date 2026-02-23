@@ -5,14 +5,21 @@
       "runtime": "nodejs20.x"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/chat",
-      "destination": "/api/chat.js"
+      "handle": "filesystem"
     },
     {
-      "source": "/api/health",
-      "destination": "/api/health.js"
+      "src": "^/api/chat$",
+      "dest": "/api/chat.js"
+    },
+    {
+      "src": "^/api/health$",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "^/$",
+      "dest": "/index.html"
     }
   ]
 }
